@@ -7,7 +7,8 @@ class eZWorkflowEngineHookType extends eZWorkflowEventType
     static $signalMapping = array(
         'content_addlocation' => array( 'pre' => false, 'post' => 'LocationService\CreateLocationSignal' ),
         // this legacy operation does not allow us to retrieve in all scenarios the object_id, needed for the corresponding signal
-        //'content_delete' =>  array( 'pre' => false, 'post' => 'ContentService\DeleteContentSignal' ),
+        // if running on post we only get the removed node_id so we can't get the oject of this node anymore.
+        'content_delete' =>  array( 'pre' => 'ContentService\DeleteContentSignal', 'post' => false ),
         'content_hide' => array( 'pre' => false, 'post' => 'LocationService\HideLocationSignal' ),
         'content_move' => array( 'pre' => false, 'post' => 'LocationService\MoveSubtreeSignal' ),
         'content_publish' => array( 'pre' => false, 'post' => 'ContentService\PublishVersionSignal' ),
@@ -140,11 +141,18 @@ class eZWorkflowEngineHookType extends eZWorkflowEventType
 
                 return $out;
 
-            /*case 'content_delete':
+            case 'content_delete':
                 /// @todo this only works on BEFORE trigger (or when using trash): we get a list of nodes and need to find the object...
+                $objectId = $this->objectIdFromNodeId($parameters['node_id_list']);
+                if ( !$objectId )
+                {
+                    return array( false );
+                }
                 return array(
-                    'contentId' => $parameters['node_id']
-                );*/
+                    array(
+                        'contentId' => $objectId
+                    )
+                );
 
             case 'content_hide':
                 $objectId = $this->objectIdFromNodeId($parameters['node_id']);
